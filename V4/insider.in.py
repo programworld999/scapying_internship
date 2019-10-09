@@ -1,7 +1,15 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[34]:
+
+
 import requests
 from bs4 import BeautifulSoup as BS
 import json
 import mysql.connector
+from art import *
+
 
 
 try:
@@ -12,10 +20,9 @@ except:
     print("Somting wrong in url")
     
 soup = BS(page.text, 'html.parser')
-scraped_cards = soup.find_all(class_='featured-card ')
+scraped_cards = soup.find_all(class_="featured-card")
+# print(scraped_cards)
 
-
-all_events = []
 
 i = 0
 
@@ -80,17 +87,23 @@ mydb = mysqlConnectionInit()
 myquery = mydb.cursor()
 
 def insertDetailToDatabase():
+    print("============ insertDetailToDatabase ============")
     for i in range(len(all_data)):
         sql = "INSERT INTO insider_in (title, organizer, url, address, price, starting_date_time, ending_date_time) VALUES (%s, %s, %s, %s, %s, %s, %s)"
         val = (all_data[i]['title'], all_data[i]['organizer'], all_data[i]['url'], all_data[i]['address'], all_data[i]['price'], all_data[i]['starting_date_time'], all_data[i]['ending_date_time'])
         try:
             myquery.execute(sql, val)
             mydb.commit()
+#             print(all_data[i])
             print("Scraping and Storing Everything Is Done. Congaratulations!")
         except:
             print("Unable to insert data")
 
 insertDetailToDatabase()
+
+
+############################ Interesting URLS ###################
+
 
 def Interesting_url():
     for i in range(len(all_data)):
@@ -106,10 +119,29 @@ def Interesting_url():
 Interesting_url()
 
 
+############################ Interesting URLS ###################
+
+
+############################ Non-Interesting URLS ###################
+
+
+urls = soup.find_all("a")
+all_non_intersted_urls = []
+
+for i in range(len(urls)):
+    url = urls[i].get('href')
+    x = re.search("^http", url)
+    if(x):
+        url = url
+    else:
+        url = "http://insider.in"+url
+    all_non_intersted_urls.append(url)
+
+
 def Non_interesting_url():
-    for i in range(10, len(all_events)):
+    for i in range(10, len(all_non_intersted_urls)):
         sql = "INSERT INTO non_interesting_url (url, website) VALUES (%s, %s)"
-        val = (all_events[i], 'insider.in')
+        val = (all_non_intersted_urls[i], 'insider.in')
         try:
             myquery.execute(sql, val)
             mydb.commit()
@@ -121,6 +153,7 @@ def Non_interesting_url():
 
 Non_interesting_url()
 
+############################ Non-Interesting URLS ###################
 
-
+tprint("Successful!")
 

@@ -1,27 +1,35 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[16]:
+
+
 import requests
 from bs4 import BeautifulSoup as BS
 import json
 import mysql.connector
+import re
+from art import *
 
 
 try:
-    page = requests.get("https://insider.in/mumbai")
-    print("URL is ok!")
+    page = requests.get("https://www.eventshigh.com/city/kolkata")
+#     print("URL is ok!")
 
 except:
     print("Somting wrong in url")
     
+
+
 soup = BS(page.text, 'html.parser')
-scraped_cards = soup.find_all(class_='featured-card ')
-
-
+scraped_cards = soup.find_all(class_='ga-card-track')
+# print(res[1])
 all_events = []
-
 i = 0
-
 for i in range(len(scraped_cards)):
-    all_events.append("https://insider.in"+scraped_cards[i].contents[0].get('href'))
+    all_events.append('https://www.eventshigh.com'+scraped_cards[i].find('a').get('href'))
 
+    
 
 
 if(len(all_events)<10):
@@ -30,21 +38,25 @@ else:
     event_range =10
 
     
-
+    
+    
+    
+    
 all_data = []
 
 for i in range(event_range):
     details = requests.get(all_events[i])
     details_soup = BS(details.text, 'html.parser')
     data = details_soup.find_all("script", {'type': 'application/ld+json'})
-    data = data[0].text
+    data = '{ "ALLDATA": '+ data[2].text+ '}'
     data = json.loads(data)
+    data = data["ALLDATA"][0]
 #     print(data)
-    organizer = data["performer"]['name']
+    organizer = data["performer"][0]['name']
     title = data['name']
     url = data['url']
     address = data['location']['name']
-    price = data["offers"]["offers"][0]["price"]
+    price = data["offers"][0]["price"]
     image = data["image"]
     starting_date_time = data["startDate"]
     ending_date_time = data["endDate"]
@@ -52,16 +64,12 @@ for i in range(event_range):
     all_data.append({'organizer': organizer, 'title': title, 'url': url, 'address': address, 'price': price, 'image': image, 'starting_date_time': starting_date_time, 'ending_date_time': ending_date_time })
     
     print("Success!")
-
-
-
-print("\n\n\n")
-# for i in range(len(all_data)):
-#     print(all_data[i])
-#     print("\n\n")
+    
+for i in range(len(all_data)):
+    print(all_data[i])
+    print("\n\n")
     
     
-
     
 def mysqlConnectionInit():
     try:
@@ -81,7 +89,7 @@ myquery = mydb.cursor()
 
 def insertDetailToDatabase():
     for i in range(len(all_data)):
-        sql = "INSERT INTO insider_in (title, organizer, url, address, price, starting_date_time, ending_date_time) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        sql = "INSERT INTO eventshigh_com (title, organizer, url, address, price, starting_date_time, ending_date_time) VALUES (%s, %s, %s, %s, %s, %s, %s)"
         val = (all_data[i]['title'], all_data[i]['organizer'], all_data[i]['url'], all_data[i]['address'], all_data[i]['price'], all_data[i]['starting_date_time'], all_data[i]['ending_date_time'])
         try:
             myquery.execute(sql, val)
@@ -95,7 +103,7 @@ insertDetailToDatabase()
 def Interesting_url():
     for i in range(len(all_data)):
         sql = "INSERT INTO interesting_url (url, website) VALUES (%s, %s)"
-        val = (all_data[i]['url'], 'insider.in')
+        val = (all_data[i]['url'], 'eventshigh.com')
         try:
             myquery.execute(sql, val)
             mydb.commit()
@@ -106,10 +114,40 @@ def Interesting_url():
 Interesting_url()
 
 
+
+# In[17]:
+
+
+
+
+############################ Non-Interesting URLS ###################
+
+
+urls = soup.find_all("a")
+all_non_intersted_urls = []
+
+for i in range(len(urls)):
+    url = urls[i].get('href')
+    url = str(url)
+    x = re.search("^http", url)
+    y = re.search("^//", url)
+    if(x):
+        url = url
+    elif(y):
+        url = "https:"+url
+    else:
+        url = "https://www.eventshigh.com"+url
+    if(url != "https://www.eventshigh.comNone"):
+        all_non_intersted_urls.append(url)
+#     print(url)
+#     print("\n")
+    
+
+
 def Non_interesting_url():
-    for i in range(10, len(all_events)):
+    for i in range(10, len(all_non_intersted_urls)):
         sql = "INSERT INTO non_interesting_url (url, website) VALUES (%s, %s)"
-        val = (all_events[i], 'insider.in')
+        val = (all_non_intersted_urls[i], 'eventshigh.com')
         try:
             myquery.execute(sql, val)
             mydb.commit()
@@ -121,6 +159,7 @@ def Non_interesting_url():
 
 Non_interesting_url()
 
+########################### Non-Interesting URLS ###################
 
-
+tprint("Successful!")
 
