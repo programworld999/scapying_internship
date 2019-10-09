@@ -12,7 +12,7 @@ except:
     print("Somting wrong in url")
     
 soup = BS(page.text, 'html.parser')
-scraped_cards = soup.find_all(class_='featured-card ')
+scraped_cards = soup.find_all(class_='featured-card')
 
 
 all_events = []
